@@ -9,8 +9,8 @@
 
 typedef struct
 {
-  int edges_to[1000];
-  double edges_cost[1000],cost;
+  int edges_to[PMAX];
+  double edges_cost[PMAX],cost;
   int n_edges, done, from;
 } node; //重み付きグラフのノード
 
@@ -75,7 +75,8 @@ int main()
   Path path[1000];
   int N,M,P,Q;
   double z[NMAX][2]; /*座標を格納する。それに続いて交差点の座標をx座標が小さい順に格納する*/
-  int size,i,j,r[CMAX][2],num_con[200],num_node,num_cross,k=0,l=0,m=0,flag[100],dep,dest; /*rは道をつくる座標番号を格納する。 lは交差した分だけインクリメントされる*/
+  int size,size_node,i,j,r[CMAX][2],num_con[200],num_node,num_cross,k=0,l=0,m=0,flag[100],dep,dest; /*rは道をつくる座標番号を格納する。 lは交差した分だけインクリメントされる*/
+  int f;
   int q[QMAX],point[200]; /*Qの三つ目の引数ki*/
   double x,y,s,t,keyx,keyy,len;  
   double A[2][2]; /*s,tを求める際の左行列*/
@@ -188,7 +189,7 @@ int main()
     }
   num_cross=l; //交差点の数を格納
   
-  for(i=0;i<l-1;i++) //交差点を小さい順にソート
+  for(i=0;i<num_cross-1;i++) //交差点を小さい順にソート
     {
       if(cross[i].cross[0]>cross[i+1].cross[0])
 	{
@@ -203,9 +204,68 @@ int main()
 	z[i][1] = cross[k].cross[1];
 	k++;
       }
-    size = i;
- 
-     for(i=0;i<num_cross-1;i++)
+    size = i; //交差点を含めた座標の数を格納
+    for(j=0;j<num_cross;j++)
+      {
+	//	printf("%d %d %d %d\n",cross[j].p1,cross[j].q1,cross[j].p2,cross[j].q2);
+      }
+
+    k=0;
+     for(i=0;i<M;i++) //入力で得た座標で交点を作らない道の始点と終点、重みを求める
+     {
+       f=0;
+	for(j=0;j<num_cross;j++)
+	  {
+	    if(r[i][0] == cross[j].p1)
+	      {
+		if(r[i][1] == cross[j].q1){
+		  f=1;
+		  break;
+		}
+	      }
+	    if(r[i][0] == cross[j].q1)
+	      {
+		if(r[i][1] == cross[j].p1)
+		  {
+		    f=1;
+		    break;
+		  }
+	      }
+	    if(r[i][0] == cross[j].p2)
+	      {
+		if(r[i][1] == cross[j].q2)
+		  {
+		    f=1;
+		    break;
+		  }
+	      }
+	    if(r[i][0] == cross[j].q2)
+	      {
+		if(r[i][0] == cross[j].p2){
+		  f=1;
+		  break;
+		}
+	      }
+	    //	printf("%d\n",f);
+	    if(f!=1){
+	      path[k].start = r[i][0];
+	      path[k].goal = r[i][1];
+	      num_con[r[i][0]]++;
+	      num_con[r[i][1]]++;
+	      len = (z[r[i][1]][0]-z[r[i][0]][0])*(z[r[i][1]][0]-z[r[i][0]][0])+(z[r[i][1]][1]-z[r[i][0]][1])*(z[r[i][1]][1]-z[r[i][0]][1]);
+	      path[k].len = sqrt(len);
+	      k++;
+	      path[k].start = r[i][1];
+	      path[k].goal = r[i][0];
+	      path[k].len = sqrt(len);
+	      k++;	
+	    }
+	  }
+     }
+	
+	  
+	    
+    for(i=0;i<num_cross-1;i++) //同じ直線上に交差点が二つある場合の処理
       {
 	for(j=i+1;j<num_cross;j++)
 	  {
@@ -214,7 +274,7 @@ int main()
 		if(z[cross[i].p1][0]>z[cross[i].q1][0])
 		  {
 		    cross[i].p1 = N+j;
-		    cross[l].q1 = N+i;
+		    cross[j].q1 = N+i;
 		  }
 		else if(z[cross[i].p1][0]<z[cross[i].q1][0])
 		  {
@@ -288,47 +348,39 @@ int main()
 		    cross[j].q1 = N+i;
 		  }
 	      }
+	    if(cross[i].p1 == cross[j].q2 && cross[i].q1 == cross[j].p2)
+	      {
+		if(z[cross[i].p1][0]<z[cross[i].q1][0])
+		  {
+		    cross[i].q1 = N+j;
+		    cross[j].q2 = N+i;
+		  }
+		else if(z[cross[i].p1][0]>z[cross[i].q1][0])
+		  {
+		    cross[i].p1 = N+j;
+		    cross[j].p2 = N+i;
+		  }
+	      }
+	    if(cross[i].p2 == cross[j].p1 && cross[i].q2 == cross[j].q1)
+	      {
+		if(z[cross[i].p2][0]<z[cross[i].q2][0])
+		  {
+		    cross[i].q2 = N+j;
+		    cross[j].p1 = N+i;
+		  }
+		else if(z[cross[i].p2][0]>z[cross[i].q2][0])
+		  {
+		    cross[i].p2 = N+j;
+		    cross[j].p1 = N+i;
+		  }
+	      }
 	  }
       }
-    
-     k=0;
-    for(i=0;i<M;i++)/*交点を作る直線の重みを求めるのを後回し*/
-     {
-	for(j=0;j<l;j++)
-	  {
-	    if(r[i][0] == cross[j].p1)
-	      {
-		if(r[i][1] == cross[j].q1) break;
-	      }
-	    if(r[i][0] == cross[j].q1)
-	      {
-		if(r[i][1] == cross[j].p1) break;
-	      }
-	    if(r[i][0] == cross[j].p2)
-	      {
-		if(r[i][1] == cross[j].q2) break;
-	      }
-	    if(r[i][0] == cross[j].q2)
-	      {
-		if(r[i][0] == cross[j].p2) break;
-	      }	    
-	    path[k].start = r[i][0];
-	    path[k].goal = r[i][1];
-	    num_con[r[i][0]]++;
-	    num_con[r[i][1]]++;
-	    len = (z[r[i][1]][0]-z[r[i][0]][0])*(z[r[i][1]][0]-z[r[i][0]][0])+(z[r[i][1]][1]-z[r[i][0]][1])*(z[r[i][1]][1]-z[r[i][0]][1]);
-	    path[k].len = sqrt(len);
-	    k++;
-	    path[k].start = r[i][1];
-	    path[k].goal = r[i][0];
-	    path[k].len = sqrt(len);
-	    k++;
-	  }
-     }
+	  
  
     m = k;
-    for(j=0;j<num_cross;j++)
-      {
+    for(j=0;j<num_cross;j++) //交差点を含む道のの始点と終点、重みを求める
+      { 
 	path[m].start = N+j;
 	path[m].goal =  cross[j].p1;
 	num_con[N+j]++;
@@ -377,16 +429,17 @@ int main()
 	path[m].len = sqrt(len);
 	m++;
       }
+    
     l=0;
     for(i=0;i<size;i++)
       {
-	if(num_con[i] == 0) continue;
-	nodes[l].n_edges = num_con[i];
+	if(num_con[i] == 0) continue; //参照座標の接続先がないならcontinue
+	nodes[l].n_edges = num_con[i]; //参照座標の接続数を代入
 	for(j=0;j<nodes[l].n_edges;j++)
 	  {
 	    for(k=0;k<m;k++)
 	      {
-		if(path[k].start == i)
+		if(path[k].start == i) //接続先の座標番号と重みを代入
 		  {
 		    nodes[l].edges_to[j] = path[k].goal;
 		    nodes[l].edges_cost[j] = path[k].len;
@@ -396,14 +449,14 @@ int main()
 	  }
 	l++;
       }
-    size = l;
+    size_node = l; 
 
-     for(i=0;i<Q;i++)
+    for(i=0;i<Q;i++)
     {
-      scanf("%s %s ",cstart,cgoal);
-      scanf("%d",&q[i]);
+      scanf("%s %s ",cstart,cgoal); //始点と終点を入力
+      scanf("%d",&q[i]); //ｋの値を入力
       strcpy(goal,cgoal);
-      if(cstart[0] == 'C')
+      if(cstart[0] == 'C') //入力が交点だった場合その交点に割り当てられた座標番号に変える 
 	{
 	  myf(cstart,C);
 	  dep = atoi(cstart);
@@ -420,13 +473,18 @@ int main()
       else dest = atoi(cgoal);
       dep--;
       dest--;
-      if(dep>size || dest>size)
+      if(dep>size_node || dest>size_node)
 	{
 	  printf("NA\n");
 	  continue;
 	}
       // printf("%d %d %d\n",dep,dest,q[i]);
-      get_path(nodes,size,dep);
+      get_path(nodes,size_node,dep);
+      if(nodes[dest].cost == -1)
+	{
+	  printf("NA\n");
+	}
+      else{
       printf("最短経路:%.5f\n",nodes[dest].cost);
      
       for(l=0;dest!=dep;l++)
@@ -434,21 +492,22 @@ int main()
 	  point[l]=dest=nodes[dest].from;
 	  point[l]++;
 	}
-      k=0;
+      
       printf("経路:");
       for(j=l-1;j>=0;j--)
 	{
 	  if(point[j]>N)
 	    {
 	      point[j]-=N;
-	      snprintf(temp,200,"%d",point[j]);
+	      snprintf(temp,200,"%d",point[j]); //tempにpoint[j]の値を文字列として格納
 	      strcat(cpoint,temp);
 	    }
-	  else snprintf(cpoint,200,"%d",point[j]);
+	  else snprintf(cpoint,200,"%d",point[j]); 
 	  printf("%s-> ",cpoint);
 	  strcpy(cpoint,C);
 	}
       printf("%s\n",goal);
+      }
     }
       return 0;
 }
@@ -471,17 +530,19 @@ void get_path(node *nodes, int size, int dep)
   while (1) {
     // 確定するノードを設定
     done_node = NULL;
-    for (i = 0; i < size; i++) {
-      if (nodes[i].done || nodes[i].cost < 0) {
-	continue;
-      } else if (done_node == NULL || nodes[i].cost < done_node->cost) {
-	done_node = &nodes[i];
-	from = i;
+    for (i = 0; i < size; i++)
+      {
+	if (nodes[i].done || nodes[i].cost < 0) {
+	  continue;
+	}
+	else if (done_node == NULL || nodes[i].cost < done_node->cost) {
+	  done_node = &nodes[i];
+	  from = i;
+	}
       }
-    }
     // 確定するノードがなくなったら終了
     if (done_node == NULL) break;
-
+    
     // ノードを確定
     done_node->done = 1;
 
@@ -496,5 +557,3 @@ void get_path(node *nodes, int size, int dep)
     }
   }
 }
-    
- 
